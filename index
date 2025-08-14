@@ -1,1 +1,460 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Workout Planner</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.0/Sortable.min.js"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .sortable-ghost {
+            background: #c8ebfb;
+            opacity: 0.5;
+        }
+        .sortable-drag {
+            opacity: 1 !important;
+        }
+        /* Simple spinner */
+        .loader {
+            border: 4px solid #f3f3f3;
+            border-radius: 50%;
+            border-top: 4px solid #3498db;
+            width: 40px;
+            height: 40px;
+            animation: spin 2s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body class="bg-gray-100 text-gray-800">
+
+    <!-- Loading Spinner -->
+    <div id="loading-spinner" class="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center z-50 hidden">
+        <div class="loader"></div>
+    </div>
+
+    <!-- Login/Register Screen -->
+    <div id="auth-screen" class="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+        <div class="max-w-md w-full space-y-8">
+            <div>
+                <h2 class="mt-6 text-center text-3xl font-extrabold text-gray-900">
+                    Sign in to your account
+                </h2>
+            </div>
+            <div class="mt-8 space-y-6">
+                <div class="rounded-md shadow-sm -space-y-px">
+                    <div>
+                        <input id="email" name="email" type="email" autocomplete="email" required class="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-t-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm" placeholder="Email address">
+                    </div>
+                    <div>
+                        <input id="password" name="password" type="password" autocomplete="current-password" required class="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-b-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm" placeholder="Password">
+                    </div>
+                </div>
+
+                <div class="flex items-center justify-between">
+                    <p id="auth-error" class="text-sm text-red-600"></p>
+                </div>
+
+                <div>
+                    <button id="login-btn" class="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                        Sign in
+                    </button>
+                    <button id="register-btn" class="mt-2 group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-indigo-600 bg-indigo-100 hover:bg-indigo-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                        Register
+                    </button>
+                </div>
+
+                <div class="relative">
+                    <div class="absolute inset-0 flex items-center">
+                        <div class="w-full border-t border-gray-300"></div>
+                    </div>
+                    <div class="relative flex justify-center text-sm">
+                        <span class="px-2 bg-gray-50 text-gray-500">
+                            Or continue with
+                        </span>
+                    </div>
+                </div>
+
+                <div>
+                    <button id="google-signin-btn" class="w-full inline-flex justify-center py-2 px-4 border border-gray-300 rounded-md shadow-sm bg-white text-sm font-medium text-gray-500 hover:bg-gray-50">
+                        <span class="sr-only">Sign in with Google</span>
+                        <svg class="w-5 h-5" aria-hidden="true" fill="currentColor" viewBox="0 0 24 24">
+                           <path d="M21.35,11.1H12.18V13.83H18.69C18.36,17.64 15.19,19.27 12.19,19.27C8.36,19.27 5,16.25 5,12C5,7.75 8.36,4.73 12.19,4.73C15.28,4.73 17.27,6.08 18.07,6.8L20.08,4.92C18.23,3.28 15.79,2 12.19,2C6.42,2 2.03,6.8 2.03,12C2.03,17.2 6.42,22 12.19,22C17.6,22 21.54,18.33 21.54,12.25C21.54,11.7 21.48,11.4 21.35,11.1Z" />
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main App -->
+    <div id="app" class="hidden">
+        <nav class="bg-white shadow-md">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="flex justify-between h-16">
+                    <div class="flex">
+                        <div class="flex-shrink-0 flex items-center">
+                            <h1 class="text-2xl font-bold text-indigo-600">Workout Planner</h1>
+                        </div>
+                    </div>
+                    <div class="flex items-center">
+                        <div class="hidden sm:ml-6 sm:flex sm:space-x-8">
+                            <button id="tab-weekly" class="border-indigo-500 text-gray-900 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
+                                Weekly Schedule
+                            </button>
+                            <button id="tab-master" class="border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
+                                Master Exercise List
+                            </button>
+                        </div>
+                        <button id="logout-btn-app" class="ml-4 bg-indigo-600 text-white px-3 py-2 rounded-md text-sm font-medium hover:bg-indigo-700">Logout</button>
+                    </div>
+                </div>
+            </div>
+        </nav>
+
+        <main class="py-10">
+            <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
+                <!-- Weekly Schedule View -->
+                <div id="weekly-view">
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6" id="weekly-schedule-container">
+                        <!-- Day cards will be injected here -->
+                    </div>
+                </div>
+
+                <!-- Master List View -->
+                <div id="master-view" class="hidden">
+                    <div class="bg-white shadow overflow-hidden sm:rounded-lg">
+                        <ul id="master-exercise-list" class="divide-y divide-gray-200">
+                            <!-- Master exercises will be injected here -->
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script type="module">
+        // Your web app's Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyDzLFYf56UZ1lYKciyMWBPsTdj4u2CfJyc",
+            authDomain: "fitness-e996a.firebaseapp.com",
+            projectId: "fitness-e996a",
+            storageBucket: "fitness-e996a.appspot.com",
+            messagingSenderId: "620321784166",
+            appId: "1:620321784166:web:71f904205e7aa80d90c8a7"
+        };
+
+        // Firebase imports
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { 
+            getAuth, 
+            createUserWithEmailAndPassword, 
+            signInWithEmailAndPassword, 
+            GoogleAuthProvider, 
+            signInWithPopup, 
+            onAuthStateChanged,
+            signOut
+        } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        const googleProvider = new GoogleAuthProvider();
+
+        // DOM Elements
+        const loadingSpinner = document.getElementById('loading-spinner');
+        const authScreen = document.getElementById('auth-screen');
+        const appScreen = document.getElementById('app');
+        const loginBtn = document.getElementById('login-btn');
+        const registerBtn = document.getElementById('register-btn');
+        const googleSigninBtn = document.getElementById('google-signin-btn');
+        const logoutBtn = document.getElementById('logout-btn-app');
+        const emailInput = document.getElementById('email');
+        const passwordInput = document.getElementById('password');
+        const authError = document.getElementById('auth-error');
+
+        const tabWeekly = document.getElementById('tab-weekly');
+        const tabMaster = document.getElementById('tab-master');
+        const weeklyView = document.getElementById('weekly-view');
+        const masterView = document.getElementById('master-view');
+        
+        const weeklyScheduleContainer = document.getElementById('weekly-schedule-container');
+        const masterExerciseList = document.getElementById('master-exercise-list');
+
+        let currentUserId = null;
+
+        // Master list of exercises
+        const masterExercises = [
+            { id: 1, title: 'Squats', description: 'A compound, full-body exercise...', category: 'lower' },
+            { id: 2, title: 'Push-ups', description: 'A common calisthenics exercise...', category: 'upper' },
+            { id: 3, title: 'Plank', description: 'An isometric core strength exercise...', category: 'core' },
+            { id: 4, title: 'Lunges', description: 'A single-leg bodyweight exercise...', category: 'lower' },
+            { id: 5, title: 'Bicep Curls', description: 'A weight training exercise...', category: 'upper' },
+            { id: 6, title: 'Crunches', description: 'One of the most popular abdominal exercises.', category: 'core' },
+            { id: 7, title: 'Deadlifts', description: 'A weight training exercise...', category: 'lower' },
+            { id: 8, title: 'Overhead Press', description: 'A weight training exercise...', category: 'upper' },
+            { id: 9, title: 'Russian Twists', description: 'A core exercise...', category: 'core' },
+            { id: 10, title: 'Calf Raises', description: 'A method of exercising the lower leg.', category: 'lower' },
+            { id: 11, title: 'Pull-ups', description: 'An upper-body strength exercise.', category: 'upper' },
+            { id: 12, title: 'Leg Raises', description: 'A strength training exercise...', category: 'core' },
+        ];
+        
+        // --- AUTHENTICATION ---
+        onAuthStateChanged(auth, user => {
+            if (user) {
+                currentUserId = user.uid;
+                authScreen.classList.add('hidden');
+                appScreen.classList.remove('hidden');
+                initApp();
+            } else {
+                currentUserId = null;
+                authScreen.classList.remove('hidden');
+                appScreen.classList.add('hidden');
+            }
+        });
+
+        loginBtn.addEventListener('click', async () => {
+            try {
+                await signInWithEmailAndPassword(auth, emailInput.value, passwordInput.value);
+                authError.textContent = '';
+            } catch (error) {
+                authError.textContent = error.message;
+            }
+        });
+
+        registerBtn.addEventListener('click', async () => {
+            try {
+                await createUserWithEmailAndPassword(auth, emailInput.value, passwordInput.value);
+                authError.textContent = '';
+            } catch (error) {
+                authError.textContent = error.message;
+            }
+        });
+
+        googleSigninBtn.addEventListener('click', async () => {
+            try {
+                await signInWithPopup(auth, googleProvider);
+                authError.textContent = '';
+            } catch (error) {
+                authError.textContent = error.message;
+            }
+        });
+
+        logoutBtn.addEventListener('click', () => {
+            signOut(auth);
+        });
+
+        // --- APP LOGIC ---
+        async function initApp() {
+            renderMasterList();
+            await loadUserSchedule();
+        }
+
+        async function loadUserSchedule() {
+            if (!currentUserId) return;
+            showSpinner();
+            const docRef = doc(db, "schedules", currentUserId);
+            const docSnap = await getDoc(docRef);
+
+            let schedule;
+            if (docSnap.exists()) {
+                schedule = docSnap.data().days;
+            } else {
+                console.log("No schedule found, generating a new one.");
+                schedule = generateDefaultSchedule();
+                await saveSchedule(schedule); // Save the new schedule
+            }
+            renderWeeklySchedule(schedule);
+            hideSpinner();
+        }
+
+        async function saveSchedule(schedule) {
+            if (!currentUserId || !schedule) return;
+            try {
+                const docRef = doc(db, "schedules", currentUserId);
+                await setDoc(docRef, { days: schedule });
+                console.log("Schedule saved!");
+            } catch (e) {
+                console.error("Error saving schedule: ", e);
+            }
+        }
+        
+        function getScheduleFromDOM() {
+            const days = [];
+            document.querySelectorAll('.exercise-list').forEach(list => {
+                const dayExercises = [];
+                list.querySelectorAll('li').forEach(item => {
+                    const exerciseId = parseInt(item.dataset.exerciseId);
+                    const masterExercise = masterExercises.find(e => e.id === exerciseId);
+                    dayExercises.push({
+                        id: exerciseId,
+                        title: masterExercise.title,
+                        weight: item.querySelector('input[data-type="weight"]').value || 0,
+                        sets: item.querySelector('input[data-type="sets"]').value || 3,
+                        reps: item.querySelector('input[data-type="reps"]').value || 10,
+                    });
+                });
+                days.push(dayExercises);
+            });
+            return days;
+        }
+
+        // --- TAB NAVIGATION ---
+        tabWeekly.addEventListener('click', () => {
+            weeklyView.classList.remove('hidden');
+            masterView.classList.add('hidden');
+            tabWeekly.classList.add('border-indigo-500', 'text-gray-900');
+            tabWeekly.classList.remove('border-transparent', 'text-gray-500');
+            tabMaster.classList.add('border-transparent', 'text-gray-500');
+            tabMaster.classList.remove('border-indigo-500', 'text-gray-900');
+        });
+
+        tabMaster.addEventListener('click', () => {
+            masterView.classList.remove('hidden');
+            weeklyView.classList.add('hidden');
+            tabMaster.classList.add('border-indigo-500', 'text-gray-900');
+            tabMaster.classList.remove('border-transparent', 'text-gray-500');
+            tabWeekly.classList.add('border-transparent', 'text-gray-500');
+            tabWeekly.classList.remove('border-indigo-500', 'text-gray-900');
+        });
+
+        // --- RENDER FUNCTIONS ---
+        function renderMasterList() {
+            masterExerciseList.innerHTML = '';
+            masterExercises.forEach(exercise => {
+                const li = document.createElement('li');
+                li.innerHTML = `
+                    <div class="px-4 py-4 sm:px-6">
+                        <div class="flex items-center justify-between">
+                            <p class="text-sm font-medium text-indigo-600 truncate">${exercise.title}</p>
+                            <div class="ml-2 flex-shrink-0 flex">
+                                <p class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getCategoryColor(exercise.category)}">
+                                    ${exercise.category}
+                                </p>
+                            </div>
+                        </div>
+                        <div class="mt-2 sm:flex sm:justify-between">
+                            <div class="sm:flex">
+                                <p class="flex items-center text-sm text-gray-500">
+                                    ${exercise.description}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                masterExerciseList.appendChild(li);
+            });
+        }
+
+        function renderWeeklySchedule(schedule) {
+            weeklyScheduleContainer.innerHTML = '';
+            const today = new Date();
+
+            for (let i = 0; i < 7; i++) {
+                const day = new Date(today);
+                day.setDate(today.getDate() + i);
+                const dayName = day.toLocaleDateString('en-US', { weekday: 'long' });
+                const dateString = day.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+
+                const dayCard = document.createElement('div');
+                dayCard.className = 'bg-white rounded-lg shadow p-4 flex flex-col';
+                dayCard.innerHTML = `
+                    <div class="flex-grow">
+                        <h3 class="font-bold text-lg">${dayName}</h3>
+                        <p class="text-sm text-gray-500 mb-4">${dateString}</p>
+                        <ul class="space-y-3 exercise-list min-h-[100px]" data-day-index="${i}">
+                            ${schedule[i].map(exercise => createExerciseCard(exercise)).join('')}
+                        </ul>
+                    </div>
+                    <button class="schedule-btn mt-4 w-full bg-indigo-500 text-white py-2 rounded-md hover:bg-indigo-600 transition-colors">Schedule Workout</button>
+                `;
+                weeklyScheduleContainer.appendChild(dayCard);
+            }
+            
+            // Initialize SortableJS for drag and drop
+            document.querySelectorAll('.exercise-list').forEach(list => {
+                new Sortable(list, {
+                    group: 'shared',
+                    animation: 150,
+                    ghostClass: 'sortable-ghost',
+                    onEnd: async () => {
+                        const newSchedule = getScheduleFromDOM();
+                        await saveSchedule(newSchedule);
+                    }
+                });
+            });
+        }
+
+        function createExerciseCard(exercise) {
+            return `
+                <li class="bg-gray-50 p-3 rounded-md shadow-sm border border-gray-200 cursor-move" data-exercise-id="${exercise.id}">
+                    <p class="font-semibold">${exercise.title}</p>
+                    <div class="text-xs text-gray-600 mt-2 space-y-1">
+                        <div class="flex justify-between items-center">
+                            <span>Weight:</span> 
+                            <div>
+                                <input type="number" data-type="weight" class="w-16 text-right bg-transparent border-b" value="${exercise.weight || 0}"> lbs
+                            </div>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <span>Sets:</span> 
+                            <input type="number" data-type="sets" class="w-16 text-right bg-transparent border-b" value="${exercise.sets || 3}">
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <span>Reps:</span> 
+                            <input type="number" data-type="reps" class="w-16 text-right bg-transparent border-b" value="${exercise.reps || 10}">
+                        </div>
+                    </div>
+                </li>
+            `;
+        }
+
+        function generateDefaultSchedule() {
+            const schedule = Array.from({ length: 7 }, () => []);
+            const lower = masterExercises.filter(e => e.category === 'lower');
+            const upper = masterExercises.filter(e => e.category === 'upper');
+            const core = masterExercises.filter(e => e.category === 'core');
+
+            const addExercise = (ex) => ({ id: ex.id, title: ex.title, weight: 0, sets: 3, reps: 10 });
+
+            // Simple distribution logic
+            schedule[0].push(addExercise(lower[0]), addExercise(lower[1]));
+            schedule[1].push(addExercise(upper[0]), addExercise(upper[1]));
+            schedule[2].push(addExercise(core[0]), addExercise(core[1]));
+            schedule[3].push(addExercise(lower[2]), addExercise(lower[3] || lower[0]));
+            schedule[4].push(addExercise(upper[2]), addExercise(upper[3] || upper[0]));
+            schedule[5].push(addExercise(core[2]), addExercise(core[3] || core[0]));
+
+            return schedule.map(day => day.filter(Boolean)); // Filter out any undefined
+        }
+
+        function getCategoryColor(category) {
+            switch (category) {
+                case 'lower': return 'bg-blue-100 text-blue-800';
+                case 'upper': return 'bg-green-100 text-green-800';
+                case 'core': return 'bg-yellow-100 text-yellow-800';
+                default: return 'bg-gray-100 text-gray-800';
+            }
+        }
+
+        function showSpinner() {
+            loadingSpinner.classList.remove('hidden');
+        }
+
+        function hideSpinner() {
+            loadingSpinner.classList.add('hidden');
+        }
+
+    </script>
+</body>
+</html>
 
